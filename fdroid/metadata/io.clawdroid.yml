@@ -1,14 +1,10 @@
-# F-Droid metadata for ClawDroid
-# Reference: https://f-droid.org/docs/Build_Metadata_Reference/
-#
-# This file is a template for submitting to fdroiddata.
-# To submit: fork https://gitlab.com/fdroid/fdroiddata, add this file
-# to metadata/, and create a merge request.
-
+AntiFeatures:
+  NonFreeNet:
+    en-US: Requires a third-party LLM API (OpenAI, Anthropic, etc.) to function.
+    ja: 動作にサードパーティのLLM API（OpenAI、Anthropic等）が必要です。
 Categories:
-  - System
   - Internet
-
+  - System
 License: MIT
 AuthorName: KarakuriAgent
 WebSite: https://github.com/KarakuriAgent/clawdroid
@@ -16,42 +12,28 @@ SourceCode: https://github.com/KarakuriAgent/clawdroid
 IssueTracker: https://github.com/KarakuriAgent/clawdroid/issues
 Changelog: https://github.com/KarakuriAgent/clawdroid/releases
 
-AntiFeatures:
-  NonFreeNet:
-    en-US: Requires a third-party LLM API (OpenAI, Anthropic, etc.) to function.
-    ja: 動作にサードパーティのLLM API（OpenAI、Anthropic等）が必要です。
-
 RepoType: git
 Repo: https://github.com/KarakuriAgent/clawdroid.git
 
 Builds:
   - versionName: 0.4.0
     versionCode: 4
-    commit: '0.4.0'
+    commit: 0.4.0
     timeout: 20000
     subdir: android/app
     sudo:
       - apt-get update
       - apt-get install -y make wget
-    init: |-
-      cd ../..
-      # Extract Go version from go.mod
-      GO_VERSION=$(grep '^go ' go.mod | awk '{print $2}')
-      # Download and install Go
-      wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz
-      tar -C $HOME -xzf go${GO_VERSION}.linux-amd64.tar.gz
-      rm go${GO_VERSION}.linux-amd64.tar.gz
+    init: "cd ../..\n# Extract Go version from go.mod\nGO_VERSION=$(grep '^go ' go.mod\
+      \ | awk '{print $2}')\n# Download and install Go\nwget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz\n\
+      tar -C $HOME -xzf go${GO_VERSION}.linux-amd64.tar.gz\nrm go${GO_VERSION}.linux-amd64.tar.gz"
     gradle:
       - embedded
-    prebuild: |-
-      cd ../..
-      export PATH=$HOME/go/bin:$PATH
-      export GOPATH=$HOME/gopath
-      # Build Go backend for all Android architectures
-      make build-android
+    prebuild: "cd ../..\nexport PATH=$HOME/go/bin:$PATH\nexport GOPATH=$HOME/gopath\n\
+      # Build Go backend for all Android architectures\nmake build-android"
     ndk: r27c
 
-AutoUpdateMode: Version
+AutoUpdateMode: Version %v
 UpdateCheckMode: HTTP
 UpdateCheckData: https://raw.githubusercontent.com/KarakuriAgent/clawdroid/main/android/app/build.gradle.kts|versionCode\s*=\s*(\d+)|https://raw.githubusercontent.com/KarakuriAgent/clawdroid/main/VERSION|(.+)
 CurrentVersion: 0.4.0
