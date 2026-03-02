@@ -24,8 +24,8 @@ Builds:
     sudo:
       - apt-get update
       - apt-get install -y make wget
-    init: "cd ../..\n# Extract Go version from go.mod\nGO_VERSION=$(grep '^go ' go.mod\
-      \ | awk '{print $2}')\n# Download and install Go\nwget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz\n\
+    init: "cd ../..\n# Extract Go version from go.mod\nGO_VERSION=$(grep '^go ' go.mod
+      | awk '{print $2}')\n# Download and install Go\nwget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz\n\
       tar -C $HOME -xzf go${GO_VERSION}.linux-amd64.tar.gz\nrm go${GO_VERSION}.linux-amd64.tar.gz"
     gradle:
       - embedded
@@ -35,6 +35,7 @@ Builds:
 
 AutoUpdateMode: Version %v
 UpdateCheckMode: HTTP
-UpdateCheckData: https://raw.githubusercontent.com/KarakuriAgent/clawdroid/main/android/app/build.gradle.kts|versionCode\s*=\s*(\d+)|https://raw.githubusercontent.com/KarakuriAgent/clawdroid/main/VERSION|(.+)
+UpdateCheckData: 
+  https://raw.githubusercontent.com/KarakuriAgent/clawdroid/main/android/app/build.gradle.kts|versionCode\s*=\s*(\d+)|https://raw.githubusercontent.com/KarakuriAgent/clawdroid/main/VERSION|(.+)
 CurrentVersion: 0.4.0
 CurrentVersionCode: 4
