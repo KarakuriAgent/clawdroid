@@ -65,7 +65,7 @@ jobs:
           fi
           CODE=${{ steps.vcode.outputs.code }}
           for locale in en-US ja; do
-            dir="android/fastlane/metadata/android/${locale}/changelogs"
+            dir="android/app/fastlane/metadata/android/${locale}/changelogs"
             mkdir -p "$dir"
             printf '%s\n' "$NOTES" > "${dir}/${CODE}.txt"
           done
@@ -81,4 +81,4 @@ jobs:
           add-paths: |
             VERSION
             android/app/build.gradle.kts
-            android/fastlane/metadata/android/
+            android/app/fastlane/metadata/android/

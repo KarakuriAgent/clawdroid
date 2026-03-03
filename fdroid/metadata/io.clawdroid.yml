@@ -7,7 +7,6 @@ Categories:
   - System
 License: MIT
 AuthorName: KarakuriAgent
-WebSite: https://github.com/KarakuriAgent/clawdroid
 SourceCode: https://github.com/KarakuriAgent/clawdroid
 IssueTracker: https://github.com/KarakuriAgent/clawdroid/issues
 Changelog: https://github.com/KarakuriAgent/clawdroid/releases
@@ -20,8 +19,7 @@ Repo: https://github.com/KarakuriAgent/clawdroid.git
 Builds:
   - versionName: 0.4.0
     versionCode: 4
-    commit: 0.4.0
-    timeout: 20000
+    commit: 7350e2b59529c4fee31e374a813a58d545ee1c34
     subdir: android/app
     sudo:
       - apt-get update
