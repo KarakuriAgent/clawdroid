@@ -17,9 +17,9 @@ RepoType: git
 Repo: https://github.com/KarakuriAgent/clawdroid.git
 
 Builds:
-  - versionName: 0.4.0
-    versionCode: 4
-    commit: 7350e2b59529c4fee31e374a813a58d545ee1c34
+  - versionName: 0.4.1
+    versionCode: 5
+    commit: 8012ffdc8b6bf4e6ba96a1ace34983e6ed9ecebd
     subdir: android/app
     sudo:
       - apt-get update
@@ -36,5 +36,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: android/app/build.gradle.kts|versionCode\s*=\s*(\d+)|VERSION|(.+)
-CurrentVersion: 0.4.0
-CurrentVersionCode: 4
+CurrentVersion: 0.4.1
+CurrentVersionCode: 5
