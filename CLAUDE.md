@@ -40,18 +40,27 @@ Android アプリ ↔ Go バックエンド: WebSocket (`ws://127.0.0.1:18793`)
 環境変数: `CLAWDROID_*` プレフィックスで上書き可能（例: `CLAWDROID_LLM_API_KEY`）
 バージョン管理: `/VERSION` ファイルにバージョン文字列を格納
 
-## GitHub テンプレート・CI
+## 言語ルール
 
-### Issue テンプレート (`.github/ISSUE_TEMPLATE/`)
-- **Bug report** (`[BUG]`ラベル): 環境情報（ClawDroid バージョン、Go バージョン、AI モデル、OS、チャンネル）＋再現手順
-- **Feature request** (`[Feature]`ラベル): ゴール、提案、影響度（Core Feature / Nice-to-Have / Roadmap 連携）
-- **General Task** (`[Task]`ラベル): 目的、ToDoリスト、完了条件
+コード上のコメント、ドキュメント、コミットメッセージ、Issue、PR はすべて英語で書くこと。ユーザーから別途指示がある場合のみ他言語を使用する。
 
-### PR テンプレート (`.github/pull_request_template.md`)
-- Type of Change: Bug fix / New feature / Documentation / Refactoring から選択
-- Linked Issue、Technical Context、Test Environment（ハードウェア・OS・モデル・チャンネル）、Proof of Work を記載
+## PR・Issue 作成ルール
 
-### CI ワークフロー (`.github/workflows/`)
+PR 作成時は `.github/pull_request_template.md` のフォーマットに従うこと:
+- **Description**: 変更内容の説明
+- **Type of Change**: Bug fix / New feature / Documentation / Refactoring から該当するものをチェック
+- **Linked Issue**: 関連 Issue があればリンク
+- **Technical Context**: ドキュメント以外の変更時は参考 URL・理由を記載
+- **Test Environment & Hardware**: テストした環境（Hardware, OS, Model/Provider, Channels）
+- **Checklist**: スタイル準拠・セルフレビュー・ドキュメント更新の確認
+
+Issue 作成時は `.github/ISSUE_TEMPLATE/` のテンプレートを使用:
+- **Bug report** (`[BUG]`): 環境情報＋再現手順
+- **Feature request** (`[Feature]`): ゴール、提案、影響度
+- **General Task** (`[Task]`): 目的、ToDoリスト、完了条件
+
+## CI ワークフロー (`.github/workflows/`)
+
 - `pr.yml` / `go-build.yml`: Go ビルド・テスト（push/PR 時）
 - `android-pr.yml` / `android-build.yml`: Android APK ビルド
 - `release.yml`: GoReleaser によるリリース自動化
