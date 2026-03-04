@@ -212,8 +212,8 @@ func DefaultConfig() *Config {
 				ContextWindow:       128000,
 				Temperature:         0,
 				MaxToolIterations:   10,
-			ShowErrors:          true,
-			ShowWarnings:        true,
+				ShowErrors:          true,
+				ShowWarnings:        true,
 			},
 		},
 		Channels: ChannelsConfig{
