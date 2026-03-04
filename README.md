@@ -109,6 +109,9 @@ All settings can be overridden by environment variables with the `CLAWDROID_` pr
 | `context_window` | `128000` | `CLAWDROID_AGENTS_DEFAULTS_CONTEXT_WINDOW` | Context window size (tokens) |
 | `temperature` | `0` | `CLAWDROID_AGENTS_DEFAULTS_TEMPERATURE` | LLM sampling temperature |
 | `max_tool_iterations` | `10` | `CLAWDROID_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS` | Max tool call loops per request |
+| `queue_messages` | `false` | `CLAWDROID_AGENTS_DEFAULTS_QUEUE_MESSAGES` | Queue new messages instead of cancelling active processing |
+| `show_errors` | `true` | `CLAWDROID_AGENTS_DEFAULTS_SHOW_ERRORS` | Show error messages in chat |
+| `show_warnings` | `true` | `CLAWDROID_AGENTS_DEFAULTS_SHOW_WARNINGS` | Show warning messages in chat |
 
 ### Gateway (`gateway`)
 

@@ -72,12 +72,28 @@ func TestLoadConfig_MigratesAndSaves(t *testing.T) {
 	}
 }
 
+func TestMigrateConfig_FromV1ToV2(t *testing.T) {
+	cfg := &Config{Version: 1}
+	if !migrateConfig(cfg) {
+		t.Error("migrateConfig should return true when migrating from version 1")
+	}
+	if cfg.Version != ConfigVersion {
+		t.Errorf("Version = %d, want %d", cfg.Version, ConfigVersion)
+	}
+	if !cfg.Agents.Defaults.ShowErrors {
+		t.Error("ShowErrors should be true after migration from v1")
+	}
+	if !cfg.Agents.Defaults.ShowWarnings {
+		t.Error("ShowWarnings should be true after migration from v1")
+	}
+}
+
 func TestLoadConfig_NoMigrationWhenCurrent(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "config.json")
 
 	// Write a config already at current version
-	data := `{"version":1,"llm":{"model":"test"}}`
+	data := `{"version":2,"llm":{"model":"test"}}`
 	if err := os.WriteFile(path, []byte(data), 0644); err != nil {
 		t.Fatal(err)
 	}

@@ -53,6 +53,8 @@ type AgentLoop struct {
 	procsMu        sync.Mutex
 	mediaDir       string
 	queueMessages  bool
+	showErrors     bool
+	showWarnings   bool
 }
 
 type activeProcess struct {
@@ -245,6 +247,8 @@ func NewAgentLoop(cfg *config.Config, msgBus *bus.MessageBus, provider providers
 		activeProcs:    make(map[string]*activeProcess),
 		mediaDir:       mediaDir,
 		queueMessages:  cfg.Agents.Defaults.QueueMessages,
+		showErrors:     cfg.Agents.Defaults.ShowErrors,
+		showWarnings:   cfg.Agents.Defaults.ShowWarnings,
 	}
 }
 
@@ -320,10 +324,12 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 					return
 				}
 				if err != nil {
-					al.bus.PublishOutbound(bus.OutboundMessage{
-						Channel: m.Channel, ChatID: m.ChatID,
-						Content: fmt.Sprintf("Error: %v", err), Type: "error",
-					})
+					if al.showErrors {
+						al.bus.PublishOutbound(bus.OutboundMessage{
+							Channel: m.Channel, ChatID: m.ChatID,
+							Content: fmt.Sprintf("Error: %v", err), Type: "error",
+						})
+					}
 					return
 				}
 				if response != "" {
@@ -769,7 +775,7 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, messages []providers.M
 				})
 
 				// Notify user on first retry only
-				if retry == 0 && !constants.IsInternalChannel(opts.Channel) && opts.SendResponse {
+				if retry == 0 && !constants.IsInternalChannel(opts.Channel) && opts.SendResponse && al.showWarnings {
 					al.bus.PublishOutbound(bus.OutboundMessage{
 						Channel: opts.Channel,
 						ChatID:  opts.ChatID,
@@ -1022,7 +1028,7 @@ func (al *AgentLoop) maybeSummarize(sessionKey, channel, chatID string) {
 			go func() {
 				defer al.summarizing.Delete(sessionKey)
 				// Notify user about optimization if not an internal channel
-				if !constants.IsInternalChannel(channel) {
+				if !constants.IsInternalChannel(channel) && al.showWarnings {
 					al.bus.PublishOutbound(bus.OutboundMessage{
 						Channel: channel,
 						ChatID:  chatID,

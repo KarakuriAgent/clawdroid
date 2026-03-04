@@ -74,6 +74,8 @@ type AgentDefaults struct {
 	Temperature         float64 `json:"temperature" label:"Temperature" env:"CLAWDROID_AGENTS_DEFAULTS_TEMPERATURE"`
 	MaxToolIterations   int     `json:"max_tool_iterations" label:"Max Tool Iterations" env:"CLAWDROID_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
 	QueueMessages       bool    `json:"queue_messages" label:"Queue Messages" env:"CLAWDROID_AGENTS_DEFAULTS_QUEUE_MESSAGES"`
+	ShowErrors          bool    `json:"show_errors" label:"Show Errors" env:"CLAWDROID_AGENTS_DEFAULTS_SHOW_ERRORS"`
+	ShowWarnings        bool    `json:"show_warnings" label:"Show Warnings" env:"CLAWDROID_AGENTS_DEFAULTS_SHOW_WARNINGS"`
 }
 
 type ChannelsConfig struct {
@@ -210,6 +212,8 @@ func DefaultConfig() *Config {
 				ContextWindow:       128000,
 				Temperature:         0,
 				MaxToolIterations:   10,
+			ShowErrors:          true,
+			ShowWarnings:        true,
 			},
 		},
 		Channels: ChannelsConfig{
