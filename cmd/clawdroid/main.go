@@ -33,8 +33,18 @@ import (
 	"github.com/KarakuriAgent/clawdroid/pkg/providers"
 	"github.com/KarakuriAgent/clawdroid/pkg/skills"
 	"github.com/KarakuriAgent/clawdroid/pkg/tools"
+	_ "time/tzdata"
+
 	"github.com/chzyer/readline"
 )
+
+func init() {
+	if tz := os.Getenv("TZ"); tz != "" {
+		if loc, err := time.LoadLocation(tz); err == nil {
+			time.Local = loc
+		}
+	}
+}
 
 //go:generate cp -r ../../workspace .
 //go:embed workspace

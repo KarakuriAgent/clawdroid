@@ -78,6 +78,7 @@ class GatewayProcessManager(
         val env = mapOf(
             "HOME" to context.filesDir.absolutePath,
             "CLAWDROID_GATEWAY_API_KEY" to settings.apiKey,
+            "TZ" to java.util.TimeZone.getDefault().id,
         )
 
         val pb = ProcessBuilder(binaryPath, "gateway", "run")

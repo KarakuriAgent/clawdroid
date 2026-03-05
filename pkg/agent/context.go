@@ -97,7 +97,7 @@ func (cb *ContextBuilder) hasTool(name string) bool {
 // ---------------------------------------------------------------------------
 
 func (cb *ContextBuilder) getIdentity() string {
-	now := time.Now().Format("2006-01-02 15:04 (Monday)")
+	now := time.Now().Format("2006-01-02 15:04 MST (Monday)")
 	workspacePath, _ := filepath.Abs(cb.workspace)
 	toolsSection := cb.buildToolsSection()
 

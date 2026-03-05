@@ -241,7 +241,7 @@ func (hs *HeartbeatService) buildPrompt() string {
 		return ""
 	}
 
-	now := time.Now().Format("2006-01-02 15:04:05")
+	now := time.Now().Format("2006-01-02 15:04:05 MST")
 	return fmt.Sprintf(`# Heartbeat Check
 
 Current time: %s
@@ -370,6 +370,6 @@ func (hs *HeartbeatService) log(level, format string, args ...any) {
 	}
 	defer func() { _ = f.Close() }()
 
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	timestamp := time.Now().Format("2006-01-02 15:04:05 MST")
 	_, _ = fmt.Fprintf(f, "[%s] [%s] %s\n", timestamp, level, fmt.Sprintf(format, args...))
 }
