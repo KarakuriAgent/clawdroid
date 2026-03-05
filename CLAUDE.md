@@ -9,6 +9,8 @@ ClawDroid は Go バックエンドを内蔵した Android AI アシスタント
 ## 作業ルール
 
 コードを修正する前に、必ずプランモードでプランを作成し、ユーザーの承認を得てから実装に入ること。
+PR 作成時は最新の main ブランチから新しいブランチを作成し、`.github/pull_request_template.md` のテンプレートに従うこと。
+Issue 作成時は `.github/ISSUE_TEMPLATE/` のテンプレートに従うこと。
 
 ## ビルド・テストコマンド
 
