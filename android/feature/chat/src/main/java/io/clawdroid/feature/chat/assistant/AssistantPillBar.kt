@@ -60,14 +60,13 @@ import io.clawdroid.core.ui.theme.TextSecondary
 import io.clawdroid.feature.chat.voice.CameraCaptureManager
 import io.clawdroid.feature.chat.voice.ChatTurn
 import io.clawdroid.feature.chat.voice.VoiceModeState
+import io.clawdroid.feature.chat.voice.isInterruptable
+import io.clawdroid.feature.chat.voice.phaseColor
 import com.composables.icons.lucide.R as LucideR
 import kotlin.math.PI
 import kotlin.math.sin
 
 private val PillBackground = Color(0xE6141428)
-private val ListeningColor = Color(0xFF00D4FF)
-private val ThinkingColor = Color(0xFFA855F7)
-private val SpeakingColor = Color(0xFF22C55E)
 private val ErrorColor = Color(0xFFEF4444)
 
 @Composable
@@ -76,6 +75,7 @@ fun AssistantPillBar(
     isAtTop: Boolean,
     onClose: () -> Unit,
     onInterrupt: () -> Unit,
+    onListeningPauseToggle: () -> Unit,
     onPositionChange: (Boolean) -> Unit,
     onCameraToggle: () -> Unit,
     onScreenCaptureToggle: () -> Unit,
@@ -85,9 +85,6 @@ fun AssistantPillBar(
     val isExpanded = state.phase == VoicePhase.THINKING ||
         state.phase == VoicePhase.SPEAKING ||
         state.phase == VoicePhase.ERROR
-
-    val interruptable = state.phase != VoicePhase.LISTENING &&
-        state.phase != VoicePhase.IDLE
 
     var historyExpanded by remember { mutableStateOf(false) }
 
@@ -226,7 +223,7 @@ fun AssistantPillBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (interruptable) {
+                            if (state.phase.isInterruptable) {
                                 Modifier.clickable(
                                     indication = null,
                                     interactionSource = remember { MutableInteractionSource() }
@@ -235,15 +232,24 @@ fun AssistantPillBar(
                         ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Mic icon
-                    Icon(
-                        painter = painterResource(LucideR.drawable.lucide_ic_mic),
-                        contentDescription = "Microphone",
-                        modifier = Modifier.size(20.dp),
-                        tint = phaseColor(state.phase)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
+                    // Mic icon — tap to pause/resume listening
+                    val micEnabled = state.phase == VoicePhase.LISTENING ||
+                        state.phase == VoicePhase.PAUSED
+                    IconButton(
+                        onClick = onListeningPauseToggle,
+                        enabled = micEnabled,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                if (state.phase == VoicePhase.PAUSED) LucideR.drawable.lucide_ic_mic_off
+                                else LucideR.drawable.lucide_ic_mic
+                            ),
+                            contentDescription = if (state.phase == VoicePhase.PAUSED) "Resume listening" else "Pause listening",
+                            modifier = Modifier.size(20.dp),
+                            tint = phaseColor(state.phase)
+                        )
+                    }
 
                     // Waveform
                     WaveformBar(
@@ -382,6 +388,7 @@ private fun WaveformBar(
                     val dynamic = amplitude * 0.85f * ((wave + 1f) / 2f)
                     (base + dynamic) * size.height
                 }
+                VoicePhase.PAUSED -> 0.12f * size.height
                 VoicePhase.THINKING -> {
                     val wave = sin(normalizedX * 3f * PI.toFloat() + animPhase * 2f)
                     (0.2f + 0.15f * ((wave + 1f) / 2f)) * size.height
@@ -403,11 +410,3 @@ private fun WaveformBar(
     }
 }
 
-private fun phaseColor(phase: VoicePhase): Color = when (phase) {
-    VoicePhase.LISTENING -> ListeningColor
-    VoicePhase.SENDING -> Color(0xFFFF8C42)
-    VoicePhase.THINKING -> ThinkingColor
-    VoicePhase.SPEAKING -> SpeakingColor
-    VoicePhase.ERROR -> ErrorColor
-    VoicePhase.IDLE -> Color(0xFF4A5568)
-}

@@ -308,6 +308,7 @@ class AssistantService : LifecycleService(), SavedStateRegistryOwner {
                             isAtTop = overlayAtTop,
                             onClose = { shutdown() },
                             onInterrupt = { assistantManager.interrupt() },
+                            onListeningPauseToggle = { assistantManager.toggleListeningPause() },
                             onPositionChange = { top -> moveOverlayTo(top) },
                             onCameraToggle = { handleCameraToggle() },
                             onScreenCaptureToggle = { handleScreenCaptureToggle() },

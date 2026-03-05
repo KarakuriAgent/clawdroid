@@ -3,8 +3,8 @@ package io.clawdroid.feature.chat.assistant
 import android.content.ContentResolver
 import android.speech.SpeechRecognizer
 import android.util.Base64
-import androidx.core.net.toUri
 import android.util.Log
+import androidx.core.net.toUri
 import io.clawdroid.core.domain.model.AssistantMessage
 import io.clawdroid.core.domain.model.VoicePhase
 import io.clawdroid.core.domain.repository.AssistantConnection
@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -42,6 +43,8 @@ class AssistantManager(
 
     private val _state = MutableStateFlow(VoiceModeState())
     val state: StateFlow<VoiceModeState> = _state.asStateFlow()
+
+    private val _isPaused = MutableStateFlow(false)
 
     private var loopJob: Job? = null
     private var parentScope: CoroutineScope? = null
@@ -69,6 +72,19 @@ class AssistantManager(
         }
     }
 
+    fun toggleListeningPause() {
+        when (_state.value.phase) {
+            VoicePhase.LISTENING -> {
+                _isPaused.value = true
+                _state.update { it.copy(phase = VoicePhase.PAUSED) }
+            }
+            VoicePhase.PAUSED -> {
+                _isPaused.value = false
+            }
+            else -> Unit
+        }
+    }
+
     fun start(scope: CoroutineScope) {
         if (loopJob?.isActive == true) return
         parentScope = scope
@@ -84,6 +100,7 @@ class AssistantManager(
         loopJob?.cancel()
         loopJob = null
         parentScope = null
+        _isPaused.value = false
         ttsWrapper.stop()
         cameraCaptureManager.unbind()
         _state.value = VoiceModeState()
@@ -96,6 +113,7 @@ class AssistantManager(
         ttsWrapper.stop()
         loopJob?.cancel()
         loopJob = null
+        _isPaused.value = false
 
         _state.update {
             VoiceModeState(isActive = true, phase = VoicePhase.LISTENING, isCameraActive = it.isCameraActive, isScreenCaptureActive = it.isScreenCaptureActive, chatHistory = it.chatHistory)
@@ -128,6 +146,7 @@ class AssistantManager(
 
         try {
             while (isActive) {
+                _isPaused.value = false
                 _state.update {
                     it.copy(
                         phase = VoicePhase.LISTENING,
@@ -138,13 +157,26 @@ class AssistantManager(
                 }
 
                 val userTextChannel = Channel<String?>(1)
+                var pausedDuringListen = false
                 val listenJob = launch {
                     val text = listen()
                     userTextChannel.send(text)
                 }
 
+                val pauseWatcher = launch {
+                    _isPaused.first { it }
+                    pausedDuringListen = true
+                    listenJob.cancel()
+                    _isPaused.first { !it }
+                    _state.update {
+                        it.copy(phase = VoicePhase.LISTENING, amplitudeNormalized = 0f)
+                    }
+                    userTextChannel.send(null)
+                }
+
                 select<Unit> {
                     userTextChannel.onReceive { text ->
+                        pauseWatcher.cancel()
                         if (!text.isNullOrBlank()) {
                             _state.update { it.copy(phase = VoicePhase.SENDING, recognizedText = text, chatHistory = it.chatHistory + ChatTurn("user", text)) }
                             try {
@@ -161,11 +193,14 @@ class AssistantManager(
                                 return@onReceive
                             }
                             awaitAndSpeakResponse(speechQueue)
+                        } else if (pausedDuringListen) {
+                            // Pause caused the null — resume listening from the top
                         } else {
                             drainSpeechQueue(speechQueue)
                         }
                     }
                     speechQueue.onReceive { content ->
+                        pauseWatcher.cancel()
                         listenJob.cancel()
                         speakAndDrain(content, speechQueue)
                     }

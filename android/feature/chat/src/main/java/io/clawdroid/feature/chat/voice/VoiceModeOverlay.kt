@@ -109,13 +109,10 @@ fun VoiceModeOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                val interruptable = state.phase != VoicePhase.LISTENING &&
-                    state.phase != VoicePhase.IDLE
-
                 VoiceOrb(
                     phase = state.phase,
                     amplitudeNormalized = state.amplitudeNormalized,
-                    modifier = if (interruptable) {
+                    modifier = if (state.phase.isInterruptable) {
                         Modifier.clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
@@ -215,6 +212,7 @@ fun VoiceModeOverlay(
 private fun phaseLabel(phase: VoicePhase): String = when (phase) {
     VoicePhase.IDLE -> ""
     VoicePhase.LISTENING -> "Listening..."
+    VoicePhase.PAUSED -> "Paused"
     VoicePhase.SENDING -> "Sending..."
     VoicePhase.THINKING -> "Thinking..."
     VoicePhase.SPEAKING -> "Speaking..."
