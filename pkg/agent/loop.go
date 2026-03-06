@@ -46,6 +46,7 @@ type AgentLoop struct {
 	tools          *tools.ToolRegistry
 	userStore      *UserStore
 	running        atomic.Bool
+	migrationOnce  sync.Once
 	summarizing    sync.Map // Tracks which sessions are currently being summarized
 	channelManager *channels.Manager
 	rateLimiter    *rateLimiter
@@ -267,14 +268,6 @@ func NewAgentLoop(cfg *config.Config, msgBus *bus.MessageBus, provider providers
 func (al *AgentLoop) Run(ctx context.Context) error {
 	al.running.Store(true)
 
-	// Send migration notice if USER.md exists but users.json does not
-	if al.userStore != nil && al.userStore.NeedsMigration() {
-		al.bus.PublishOutbound(bus.OutboundMessage{
-			Channel: "websocket",
-			Content: "USER.md が見つかりました。ユーザー管理が新しい形式（users.json）に変わりました。\nチャットで移行を依頼するか、手動で更新してください。\n\n手動更新の場合、以下の形式で ~/.clawdroid/data/users.json を作成:\n```json\n{\n  \"users\": [{\n    \"name\": \"あなたの名前\",\n    \"channels\": { \"websocket\": [\"default\"] },\n    \"memo\": [\"Preferred language: Japanese\"]\n  }]\n}\n```",
-		})
-	}
-
 	for al.running.Load() {
 		select {
 		case <-ctx.Done():
@@ -482,6 +475,17 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 			inputMode = mode
 		}
 	}
+
+	// Send migration notice once on first message
+	al.migrationOnce.Do(func() {
+		if al.userStore != nil && al.userStore.NeedsMigration() {
+			al.bus.PublishOutbound(bus.OutboundMessage{
+				Channel: msg.Channel,
+				ChatID:  msg.ChatID,
+				Content: "USER.md が見つかりました。ユーザー管理が新しい形式（users.json）に変わりました。\nチャットで移行を依頼するか、手動で更新してください。\n\n手動更新の場合、以下の形式で ~/.clawdroid/data/users.json を作成:\n```json\n{\n  \"users\": [{\n    \"name\": \"あなたの名前\",\n    \"channels\": { \"websocket\": [\"default\"] },\n    \"memo\": [\"Preferred language: Japanese\"]\n  }]\n}\n```",
+			})
+		}
+	})
 
 	// Resolve sender name from user directory
 	userMessage := msg.Content
