@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import io.clawdroid.backend.api.R
 
 object NotificationHelper {
 
@@ -59,7 +60,7 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("ClawDroid")
             .setContentText(content.take(200))
             .setStyle(NotificationCompat.BigTextStyle().bigText(content.take(1000)))

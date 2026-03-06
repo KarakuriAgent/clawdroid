@@ -51,6 +51,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.ktor.client.HttpClient
 import io.clawdroid.PermissionRequestActivity
+import io.clawdroid.backend.api.R
 import io.clawdroid.core.data.remote.WebSocketClient
 import io.clawdroid.core.data.repository.AssistantConnectionImpl
 import io.clawdroid.core.domain.repository.AssistantConnection
@@ -411,7 +412,7 @@ class AssistantService : LifecycleService(), SavedStateRegistryOwner {
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, NotificationHelper.ASSISTANT_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("ClawDroid Assistant")
             .setContentText("Listening...")
             .setPriority(NotificationCompat.PRIORITY_LOW)

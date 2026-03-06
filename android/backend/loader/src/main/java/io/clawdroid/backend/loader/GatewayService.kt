@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
+import io.clawdroid.backend.api.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -79,7 +80,7 @@ class GatewayService : LifecycleService() {
         val contentText = if (running) "Backend running" else "Backend paused"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("ClawDroid")
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_LOW)
