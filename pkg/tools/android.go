@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KarakuriAgent/clawdroid/pkg/config"
 	"github.com/google/uuid"
 )
 
@@ -28,25 +29,16 @@ type toolRequest struct {
 	Params    map[string]interface{} `json:"params,omitempty"`
 }
 
-// UI-interaction actions restricted to assistant/overlay clients.
-var uiActions = map[string]bool{
-	"screenshot":  true,
-	"get_ui_tree": true,
-	"tap":         true,
-	"swipe":       true,
-	"text":        true,
-	"keyevent":    true,
-}
-
 type AndroidTool struct {
 	sendCallback SendCallbackWithType
 	channel      string
 	chatID       string
 	clientType   string
+	cfg          config.AndroidToolsConfig
 }
 
-func NewAndroidTool() *AndroidTool {
-	return &AndroidTool{}
+func NewAndroidTool(cfg config.AndroidToolsConfig) *AndroidTool {
+	return &AndroidTool{cfg: cfg}
 }
 
 func (t *AndroidTool) Name() string { return "android" }
@@ -58,145 +50,11 @@ func (t *AndroidTool) SetClientType(ct string) {
 }
 
 func (t *AndroidTool) Description() string {
-	if t.clientType == "main" {
-		return `Control the Android device. Available actions:
-- search_apps: Search installed apps by name or package name (requires query)
-- app_info: Get app details (requires package_name)
-- launch_app: Launch an app (requires package_name)
-- broadcast: Send a broadcast intent (requires intent_action; optional intent_extras)
-- intent: Start an activity via intent (requires intent_action; optional intent_data, intent_package, intent_type, intent_extras)
-`
-	}
-	return `Control the Android device. Available actions:
-- search_apps: Search installed apps by name or package name (requires query)
-- app_info: Get app details (requires package_name)
-- launch_app: Launch an app (requires package_name)
-- screenshot: Capture a screenshot of the current screen (no params)
-- get_ui_tree: Get the accessibility UI tree (optional: resource_id, index, bounds_x/bounds_y, max_depth, max_nodes)
-- tap: Tap a screen coordinate (requires x, y)
-- swipe: Swipe between coordinates (requires x, y, x2, y2; optional duration_ms)
-- text: Input text into the focused field (requires text)
-- keyevent: Press a key (requires key: back/home/recents)
-- broadcast: Send a broadcast intent (requires intent_action; optional intent_extras)
-- intent: Start an activity via intent (requires intent_action; optional intent_data, intent_package, intent_type, intent_extras)
-`
+	return buildDescription(enabledActions(t.cfg, t.clientType))
 }
 
 func (t *AndroidTool) Parameters() map[string]interface{} {
-	allActions := []string{
-		"search_apps", "app_info", "launch_app",
-		"screenshot", "get_ui_tree",
-		"tap", "swipe", "text", "keyevent",
-		"broadcast", "intent",
-	}
-	actions := allActions
-	if t.clientType == "main" {
-		filtered := make([]string, 0, len(allActions))
-		for _, a := range allActions {
-			if !uiActions[a] {
-				filtered = append(filtered, a)
-			}
-		}
-		actions = filtered
-	}
-	props := map[string]interface{}{
-		"action": map[string]interface{}{
-			"type":        "string",
-			"enum":        actions,
-			"description": "The device action to perform",
-		},
-		"query": map[string]interface{}{
-			"type":        "string",
-			"description": "Search query for app name or package name (for search_apps)",
-		},
-		"package_name": map[string]interface{}{
-			"type":        "string",
-			"description": "Android package name (for app_info, launch_app)",
-		},
-		"intent_action": map[string]interface{}{
-			"type":        "string",
-			"description": "Intent action string (for broadcast, intent)",
-		},
-		"intent_data": map[string]interface{}{
-			"type":        "string",
-			"description": "Intent data URI (for intent)",
-		},
-		"intent_package": map[string]interface{}{
-			"type":        "string",
-			"description": "Target package for intent (for intent)",
-		},
-		"intent_type": map[string]interface{}{
-			"type":        "string",
-			"description": "MIME type for intent (for intent)",
-		},
-		"intent_extras": map[string]interface{}{
-			"type":        "object",
-			"description": "Extra key-value pairs for broadcast/intent",
-		},
-	}
-
-	// UI-only parameters: only expose when UI actions are available
-	if t.clientType != "main" {
-		props["x"] = map[string]interface{}{
-			"type":        "number",
-			"description": "X coordinate (for tap, swipe start)",
-		}
-		props["y"] = map[string]interface{}{
-			"type":        "number",
-			"description": "Y coordinate (for tap, swipe start)",
-		}
-		props["x2"] = map[string]interface{}{
-			"type":        "number",
-			"description": "End X coordinate (for swipe)",
-		}
-		props["y2"] = map[string]interface{}{
-			"type":        "number",
-			"description": "End Y coordinate (for swipe)",
-		}
-		props["duration_ms"] = map[string]interface{}{
-			"type":        "integer",
-			"description": "Swipe duration in milliseconds (default 300)",
-		}
-		props["text"] = map[string]interface{}{
-			"type":        "string",
-			"description": "Text to input (for text action)",
-		}
-		props["key"] = map[string]interface{}{
-			"type":        "string",
-			"enum":        []string{"back", "home", "recents"},
-			"description": "Key to press (for keyevent action)",
-		}
-		props["resource_id"] = map[string]interface{}{
-			"type":        "string",
-			"description": "View resource ID to start UI tree from (for get_ui_tree, e.g. com.example:id/button)",
-		}
-		props["index"] = map[string]interface{}{
-			"type":        "integer",
-			"description": "Which match to use when resource_id has multiple hits (for get_ui_tree, default 0)",
-		}
-		props["bounds_x"] = map[string]interface{}{
-			"type":        "number",
-			"description": "X coordinate to find the containing node (for get_ui_tree, alternative to resource_id)",
-		}
-		props["bounds_y"] = map[string]interface{}{
-			"type":        "number",
-			"description": "Y coordinate to find the containing node (for get_ui_tree, alternative to resource_id)",
-		}
-		props["max_depth"] = map[string]interface{}{
-			"type":        "integer",
-			"description": "Maximum traversal depth (for get_ui_tree, default 15)",
-		}
-		props["max_nodes"] = map[string]interface{}{
-			"type":        "integer",
-			"description": "Maximum number of nodes to output (for get_ui_tree, default 300)",
-		}
-	}
-
-	return map[string]interface{}{
-		"type":       "object",
-		"properties": props,
-		"required":   []string{"action"},
-	}
+	return buildParameters(enabledActions(t.cfg, t.clientType))
 }
 
 func (t *AndroidTool) SetContext(channel, chatID string) {
@@ -221,8 +79,13 @@ func (t *AndroidTool) Execute(ctx context.Context, args map[string]interface{}) 
 		return ErrorResult("action is required")
 	}
 
+	// Check if action is enabled (category + individual action filter)
+	if !t.isActionEnabled(action) {
+		return ErrorResult(fmt.Sprintf("unknown action: %s", action))
+	}
+
 	// Safety guard: reject UI actions from chat-mode clients
-	if t.clientType == "main" && uiActions[action] {
+	if t.clientType == "main" && isUIAction(action) {
 		return ErrorResult(fmt.Sprintf("unknown action: %s", action))
 	}
 
@@ -378,10 +241,68 @@ func (t *AndroidTool) validateAndBuildParams(action string, args map[string]inte
 		}
 
 	default:
+		if fn, ok := categoryValidators[action]; ok {
+			return fn(action, args)
+		}
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
 
 	return params, nil
+}
+
+// categoryValidators maps action names to their category-specific validation functions.
+// Populated by init() in each android_*.go category file.
+var categoryValidators = map[string]func(string, map[string]interface{}) (map[string]interface{}, error){}
+
+// registerCategoryValidator registers a validation function for the given action names.
+func registerCategoryValidator(fn func(string, map[string]interface{}) (map[string]interface{}, error), actions ...string) {
+	for _, a := range actions {
+		categoryValidators[a] = fn
+	}
+}
+
+// isActionEnabled checks whether an action is allowed by the current config.
+func (t *AndroidTool) isActionEnabled(action string) bool {
+	cat := actionCategory(action)
+	if cat != "" && !isCategoryEnabled(t.cfg, cat) {
+		return false
+	}
+	for _, d := range t.cfg.DisabledActions {
+		if d == action {
+			return false
+		}
+	}
+	return true
+}
+
+// isUIAction returns true if the action is a UI-interaction action.
+func isUIAction(action string) bool {
+	return uiActionMap[action]
+}
+
+// toInt extracts an int from an interface{} (handles float64 and int from JSON).
+func toInt(v interface{}) (int, bool) {
+	switch n := v.(type) {
+	case float64:
+		return int(n), true
+	case int:
+		return n, true
+	case int64:
+		return int(n), true
+	}
+	return 0, false
+}
+
+// toString extracts an optional string from args, returning "" if absent.
+func toString(v interface{}) string {
+	s, _ := v.(string)
+	return s
+}
+
+// toBool extracts a bool from an interface{}.
+func toBool(v interface{}) (bool, bool) {
+	b, ok := v.(bool)
+	return b, ok
 }
 
 func (t *AndroidTool) sendAndWait(ctx context.Context, action string, params map[string]interface{}) *ToolResult {

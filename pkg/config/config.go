@@ -181,8 +181,23 @@ type MCPServerConfig struct {
 	IdleTimeout int    `json:"idle_timeout,omitempty"` // seconds, default 300
 }
 
+type AndroidCategories struct {
+	Alarm         bool `json:"alarm"          label:"Alarm"          env:"CLAWDROID_TOOLS_ANDROID_ALARM"`
+	Calendar      bool `json:"calendar"       label:"Calendar"       env:"CLAWDROID_TOOLS_ANDROID_CALENDAR"`
+	Contacts      bool `json:"contacts"       label:"Contacts"       env:"CLAWDROID_TOOLS_ANDROID_CONTACTS"`
+	Communication bool `json:"communication"  label:"Communication"  env:"CLAWDROID_TOOLS_ANDROID_COMMUNICATION"`
+	Media         bool `json:"media"          label:"Media"          env:"CLAWDROID_TOOLS_ANDROID_MEDIA"`
+	Navigation    bool `json:"navigation"     label:"Navigation"     env:"CLAWDROID_TOOLS_ANDROID_NAVIGATION"`
+	DeviceControl bool `json:"device_control" label:"Device Control" env:"CLAWDROID_TOOLS_ANDROID_DEVICE_CONTROL"`
+	Settings      bool `json:"settings"       label:"Settings"       env:"CLAWDROID_TOOLS_ANDROID_SETTINGS"`
+	Web           bool `json:"web_actions"    label:"Web Actions"    env:"CLAWDROID_TOOLS_ANDROID_WEB"`
+	Clipboard     bool `json:"clipboard"      label:"Clipboard"      env:"CLAWDROID_TOOLS_ANDROID_CLIPBOARD"`
+}
+
 type AndroidToolsConfig struct {
-	Enabled bool `json:"enabled" label:"Enabled" env:"CLAWDROID_TOOLS_ANDROID_ENABLED"`
+	Enabled         bool              `json:"enabled"          label:"Enabled"          env:"CLAWDROID_TOOLS_ANDROID_ENABLED"`
+	Categories      AndroidCategories `json:"categories"       label:"Categories"`
+	DisabledActions []string          `json:"disabled_actions" label:"Disabled Actions"`
 }
 
 type MemoryToolsConfig struct {
@@ -264,6 +279,18 @@ func DefaultConfig() *Config {
 			},
 			Android: AndroidToolsConfig{
 				Enabled: true,
+				Categories: AndroidCategories{
+					Alarm:         true,
+					Calendar:      true,
+					Contacts:      false,
+					Communication: false,
+					Media:         true,
+					Navigation:    true,
+					DeviceControl: true,
+					Settings:      true,
+					Web:           true,
+					Clipboard:     true,
+				},
 			},
 			Memory: MemoryToolsConfig{
 				Enabled: true,

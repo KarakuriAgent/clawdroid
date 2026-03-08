@@ -2,7 +2,7 @@ package config
 
 // ConfigVersion is the current config schema version.
 // Increment this when adding new fields that must appear in existing config files.
-const ConfigVersion = 2
+const ConfigVersion = 3
 
 // migrateConfig runs version-based migrations on cfg.
 // Returns true if migrations were applied and config should be re-saved.
@@ -14,6 +14,7 @@ func migrateConfig(cfg *Config) bool {
 	migrations := []func(*Config){
 		migrateV0ToV1,
 		migrateV1ToV2,
+		migrateV2ToV3,
 	}
 
 	for i := cfg.Version; i < ConfigVersion && i < len(migrations); i++ {
@@ -32,4 +33,19 @@ func migrateV0ToV1(cfg *Config) {
 func migrateV1ToV2(cfg *Config) {
 	cfg.Agents.Defaults.ShowErrors = true
 	cfg.Agents.Defaults.ShowWarnings = true
+}
+
+func migrateV2ToV3(cfg *Config) {
+	cfg.Tools.Android.Categories = AndroidCategories{
+		Alarm:         true,
+		Calendar:      true,
+		Contacts:      false,
+		Communication: false,
+		Media:         true,
+		Navigation:    true,
+		DeviceControl: true,
+		Settings:      true,
+		Web:           true,
+		Clipboard:     true,
+	}
 }

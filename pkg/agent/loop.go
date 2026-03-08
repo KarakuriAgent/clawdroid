@@ -123,7 +123,7 @@ func createToolRegistry(workspace string, restrict bool, cfg *config.Config, msg
 		return nil
 	}
 	if cfg.Tools.Android.Enabled {
-		androidTool := tools.NewAndroidTool()
+		androidTool := tools.NewAndroidTool(cfg.Tools.Android)
 		androidTool.SetSendCallback(sendCallbackWithType)
 		registry.Register(androidTool)
 	}

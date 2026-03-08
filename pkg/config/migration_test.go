@@ -88,12 +88,37 @@ func TestMigrateConfig_FromV1ToV2(t *testing.T) {
 	}
 }
 
+func TestMigrateConfig_FromV2ToV3(t *testing.T) {
+	cfg := &Config{Version: 2}
+	if !migrateConfig(cfg) {
+		t.Error("migrateConfig should return true when migrating from version 2")
+	}
+	if cfg.Version != ConfigVersion {
+		t.Errorf("Version = %d, want %d", cfg.Version, ConfigVersion)
+	}
+	if !cfg.Tools.Android.Categories.Alarm {
+		t.Error("Alarm category should be true after v2->v3 migration")
+	}
+	if !cfg.Tools.Android.Categories.Calendar {
+		t.Error("Calendar category should be true after v2->v3 migration")
+	}
+	if cfg.Tools.Android.Categories.Contacts {
+		t.Error("Contacts category should be false (privacy default) after v2->v3 migration")
+	}
+	if cfg.Tools.Android.Categories.Communication {
+		t.Error("Communication category should be false (privacy default) after v2->v3 migration")
+	}
+	if !cfg.Tools.Android.Categories.Media {
+		t.Error("Media category should be true after v2->v3 migration")
+	}
+}
+
 func TestLoadConfig_NoMigrationWhenCurrent(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "config.json")
 
 	// Write a config already at current version
-	data := `{"version":2,"llm":{"model":"test"}}`
+	data := `{"version":3,"llm":{"model":"test"}}`
 	if err := os.WriteFile(path, []byte(data), 0644); err != nil {
 		t.Fatal(err)
 	}

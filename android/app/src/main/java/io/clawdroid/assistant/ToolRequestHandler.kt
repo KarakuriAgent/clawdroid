@@ -24,6 +24,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
+import io.clawdroid.assistant.actions.*
 import java.io.ByteArrayOutputStream
 
 class ToolRequestHandler(
@@ -34,9 +35,27 @@ class ToolRequestHandler(
     private val onAccessibilityNeeded: () -> Unit
 ) {
 
+    private val actionHandlers: List<ActionHandler> = listOf(
+        AlarmActionHandler(),
+        CalendarActionHandler(),
+        ContactsActionHandler(),
+        CommunicationActionHandler(),
+        MediaActionHandler(),
+        NavigationActionHandler(),
+        DeviceControlActionHandler(),
+        SettingsActionHandler(),
+        WebActionHandler(),
+        ClipboardActionHandler(),
+    )
+
+    private val handlerMap: Map<String, ActionHandler> = actionHandlers
+        .flatMap { handler -> handler.supportedActions.map { it to handler } }
+        .toMap()
+
     suspend fun handle(request: ToolRequest): ToolResponse {
         return try {
             when (request.action) {
+                // Core actions handled directly
                 "search_apps" -> handleSearchApps(request)
                 "app_info" -> handleAppInfo(request)
                 "launch_app" -> handleLaunchApp(request)
@@ -48,11 +67,16 @@ class ToolRequestHandler(
                 "keyevent" -> handleKeyEvent(request)
                 "broadcast" -> handleBroadcast(request)
                 "intent" -> handleIntent(request)
-                else -> ToolResponse(
-                    requestId = request.requestId,
-                    success = false,
-                    error = "Unknown action: ${request.action}"
-                )
+                // Delegate to category handlers
+                else -> {
+                    val handler = handlerMap[request.action]
+                        ?: return ToolResponse(
+                            requestId = request.requestId,
+                            success = false,
+                            error = "Unknown action: ${request.action}"
+                        )
+                    handler.handle(request, context)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling tool request: ${request.action}", e)
