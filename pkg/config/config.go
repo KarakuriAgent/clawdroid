@@ -181,8 +181,137 @@ type MCPServerConfig struct {
 	IdleTimeout int    `json:"idle_timeout,omitempty"` // seconds, default 300
 }
 
+// ── Per-category action structs ──
+
+type AlarmActions struct {
+	SetAlarm     bool `json:"set_alarm"      label:"Set Alarm"`
+	SetTimer     bool `json:"set_timer"      label:"Set Timer"`
+	DismissAlarm bool `json:"dismiss_alarm"  label:"Dismiss Alarm"`
+	ShowAlarms   bool `json:"show_alarms"    label:"Show Alarms"`
+}
+
+type CalendarActions struct {
+	CreateEvent   bool `json:"create_event"   label:"Create Event"`
+	QueryEvents   bool `json:"query_events"   label:"Query Events"`
+	UpdateEvent   bool `json:"update_event"   label:"Update Event"`
+	DeleteEvent   bool `json:"delete_event"   label:"Delete Event"`
+	ListCalendars bool `json:"list_calendars" label:"List Calendars"`
+	AddReminder   bool `json:"add_reminder"   label:"Add Reminder"`
+}
+
+type ContactsActions struct {
+	SearchContacts   bool `json:"search_contacts"    label:"Search Contacts"`
+	GetContactDetail bool `json:"get_contact_detail" label:"Get Contact Detail"`
+	AddContact       bool `json:"add_contact"        label:"Add Contact"`
+}
+
+type CommunicationActions struct {
+	Dial         bool `json:"dial"          label:"Dial"`
+	ComposeSMS   bool `json:"compose_sms"   label:"Compose SMS"`
+	ComposeEmail bool `json:"compose_email" label:"Compose Email"`
+}
+
+type MediaActions struct {
+	PlayPause       bool `json:"media_play_pause"  label:"Play/Pause"`
+	Next            bool `json:"media_next"        label:"Next"`
+	Previous        bool `json:"media_previous"    label:"Previous"`
+	PlayMusicSearch bool `json:"play_music_search" label:"Play Music Search"`
+}
+
+type NavigationActions struct {
+	Navigate           bool `json:"navigate"             label:"Navigate"`
+	SearchNearby       bool `json:"search_nearby"        label:"Search Nearby"`
+	ShowMap            bool `json:"show_map"             label:"Show Map"`
+	GetCurrentLocation bool `json:"get_current_location" label:"Get Current Location"`
+}
+
+type DeviceControlActions struct {
+	Flashlight    bool `json:"flashlight"      label:"Flashlight"`
+	SetVolume     bool `json:"set_volume"      label:"Set Volume"`
+	SetRingerMode bool `json:"set_ringer_mode" label:"Set Ringer Mode"`
+	SetDND        bool `json:"set_dnd"         label:"Set DND"`
+	SetBrightness bool `json:"set_brightness"  label:"Set Brightness"`
+}
+
+type SettingsActions struct {
+	OpenSettings bool `json:"open_settings" label:"Open Settings"`
+}
+
+type WebActions struct {
+	OpenURL   bool `json:"open_url"    label:"Open URL"`
+	WebSearch bool `json:"web_search"  label:"Web Search"`
+}
+
+type ClipboardActions struct {
+	ClipboardCopy bool `json:"clipboard_copy" label:"Copy"`
+	ClipboardRead bool `json:"clipboard_read" label:"Read"`
+}
+
+// ── Category wrappers (Enabled toggle + Actions) ──
+
+type AlarmCategory struct {
+	Enabled bool         `json:"enabled" label:"Alarm"`
+	Actions AlarmActions `json:"actions" label:""`
+}
+
+type CalendarCategory struct {
+	Enabled bool            `json:"enabled" label:"Calendar"`
+	Actions CalendarActions `json:"actions" label:""`
+}
+
+type ContactsCategory struct {
+	Enabled bool            `json:"enabled" label:"Contacts"`
+	Actions ContactsActions `json:"actions" label:""`
+}
+
+type CommunicationCategory struct {
+	Enabled bool                 `json:"enabled" label:"Communication"`
+	Actions CommunicationActions `json:"actions" label:""`
+}
+
+type MediaCategory struct {
+	Enabled bool         `json:"enabled" label:"Media"`
+	Actions MediaActions `json:"actions" label:""`
+}
+
+type NavigationCategory struct {
+	Enabled bool              `json:"enabled" label:"Navigation"`
+	Actions NavigationActions `json:"actions" label:""`
+}
+
+type DeviceControlCategory struct {
+	Enabled bool                 `json:"enabled" label:"Device Control"`
+	Actions DeviceControlActions `json:"actions" label:""`
+}
+
+type SettingsCategory struct {
+	Enabled bool            `json:"enabled" label:"Settings"`
+	Actions SettingsActions `json:"actions" label:""`
+}
+
+type WebCategory struct {
+	Enabled bool       `json:"enabled" label:"Web"`
+	Actions WebActions `json:"actions" label:""`
+}
+
+type ClipboardCategory struct {
+	Enabled bool             `json:"enabled" label:"Clipboard"`
+	Actions ClipboardActions `json:"actions" label:""`
+}
+
 type AndroidToolsConfig struct {
-	Enabled bool `json:"enabled" label:"Enabled" env:"CLAWDROID_TOOLS_ANDROID_ENABLED"`
+	Enabled         bool                  `json:"enabled"                    label:"Enabled" env:"CLAWDROID_TOOLS_ANDROID_ENABLED"`
+	Alarm           AlarmCategory         `json:"alarm"                     label:"Alarm"`
+	Calendar        CalendarCategory      `json:"calendar"                  label:"Calendar"`
+	Contacts        ContactsCategory      `json:"contacts"                  label:"Contacts"`
+	Communication   CommunicationCategory `json:"communication"            label:"Communication"`
+	Media           MediaCategory         `json:"media"                     label:"Media"`
+	Navigation      NavigationCategory    `json:"navigation"               label:"Navigation"`
+	DeviceControl   DeviceControlCategory `json:"device_control"           label:"Device Control"`
+	Settings        SettingsCategory      `json:"settings"                 label:"Settings"`
+	Web             WebCategory           `json:"web"                      label:"Web"`
+	Clipboard       ClipboardCategory     `json:"clipboard"                label:"Clipboard"`
+	DisabledActions []string              `json:"disabled_actions,omitempty" label:""`
 }
 
 type MemoryToolsConfig struct {
@@ -262,9 +391,7 @@ func DefaultConfig() *Config {
 			Exec: ExecToolsConfig{
 				Enabled: false,
 			},
-			Android: AndroidToolsConfig{
-				Enabled: true,
-			},
+			Android: DefaultAndroidToolsConfig(),
 			Memory: MemoryToolsConfig{
 				Enabled: true,
 			},
@@ -372,6 +499,35 @@ func (c *Config) DataPath() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return expandHome(c.Agents.Defaults.DataDir)
+}
+
+// DefaultAndroidToolsConfig returns the default AndroidToolsConfig with
+// all categories and actions enabled (except Contacts/Communication for privacy).
+func DefaultAndroidToolsConfig() AndroidToolsConfig {
+	allAlarm := AlarmActions{SetAlarm: true, SetTimer: true, DismissAlarm: true, ShowAlarms: true}
+	allCalendar := CalendarActions{CreateEvent: true, QueryEvents: true, UpdateEvent: true, DeleteEvent: true, ListCalendars: true, AddReminder: true}
+	allContacts := ContactsActions{SearchContacts: true, GetContactDetail: true, AddContact: true}
+	allComm := CommunicationActions{Dial: true, ComposeSMS: true, ComposeEmail: true}
+	allMedia := MediaActions{PlayPause: true, Next: true, Previous: true, PlayMusicSearch: true}
+	allNav := NavigationActions{Navigate: true, SearchNearby: true, ShowMap: true, GetCurrentLocation: true}
+	allDevice := DeviceControlActions{Flashlight: true, SetVolume: true, SetRingerMode: true, SetDND: true, SetBrightness: true}
+	allSettings := SettingsActions{OpenSettings: true}
+	allWeb := WebActions{OpenURL: true, WebSearch: true}
+	allClipboard := ClipboardActions{ClipboardCopy: true, ClipboardRead: true}
+
+	return AndroidToolsConfig{
+		Enabled:       true,
+		Alarm:         AlarmCategory{Enabled: true, Actions: allAlarm},
+		Calendar:      CalendarCategory{Enabled: true, Actions: allCalendar},
+		Contacts:      ContactsCategory{Enabled: false, Actions: allContacts},
+		Communication: CommunicationCategory{Enabled: false, Actions: allComm},
+		Media:         MediaCategory{Enabled: true, Actions: allMedia},
+		Navigation:    NavigationCategory{Enabled: true, Actions: allNav},
+		DeviceControl: DeviceControlCategory{Enabled: true, Actions: allDevice},
+		Settings:      SettingsCategory{Enabled: true, Actions: allSettings},
+		Web:           WebCategory{Enabled: true, Actions: allWeb},
+		Clipboard:     ClipboardCategory{Enabled: true, Actions: allClipboard},
+	}
 }
 
 func expandHome(path string) string {

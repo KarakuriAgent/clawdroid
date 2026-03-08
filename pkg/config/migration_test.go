@@ -88,12 +88,83 @@ func TestMigrateConfig_FromV1ToV2(t *testing.T) {
 	}
 }
 
+func TestMigrateConfig_FromV2ToV3(t *testing.T) {
+	cfg := &Config{Version: 2}
+	if !migrateConfig(cfg) {
+		t.Error("migrateConfig should return true when migrating from version 2")
+	}
+	if cfg.Version != ConfigVersion {
+		t.Errorf("Version = %d, want %d", cfg.Version, ConfigVersion)
+	}
+	// Categories
+	if !cfg.Tools.Android.Alarm.Enabled {
+		t.Error("Alarm category should be true after v2->v3 migration")
+	}
+	if !cfg.Tools.Android.Calendar.Enabled {
+		t.Error("Calendar category should be true after v2->v3 migration")
+	}
+	if cfg.Tools.Android.Contacts.Enabled {
+		t.Error("Contacts category should be false (privacy default) after v2->v3 migration")
+	}
+	if cfg.Tools.Android.Communication.Enabled {
+		t.Error("Communication category should be false (privacy default) after v2->v3 migration")
+	}
+	if !cfg.Tools.Android.Media.Enabled {
+		t.Error("Media category should be true after v2->v3 migration")
+	}
+	// Actions should all be enabled by default
+	if !cfg.Tools.Android.Alarm.Actions.SetAlarm {
+		t.Error("SetAlarm action should be true after v2->v3 migration")
+	}
+	if !cfg.Tools.Android.Web.Actions.OpenURL {
+		t.Error("OpenURL action should be true after v2->v3 migration")
+	}
+	if cfg.Tools.Android.DisabledActions != nil {
+		t.Error("DisabledActions should be nil after v2->v3 migration")
+	}
+}
+
+func TestMigrateConfig_FromV2ToV3_WithDisabledActions(t *testing.T) {
+	cfg := &Config{
+		Version: 2,
+		Tools: ToolsConfig{
+			Android: AndroidToolsConfig{
+				DisabledActions: []string{"open_url", "flashlight", "set_alarm"},
+			},
+		},
+	}
+	if !migrateConfig(cfg) {
+		t.Error("migrateConfig should return true")
+	}
+	// Disabled actions should be converted to false
+	if cfg.Tools.Android.Web.Actions.OpenURL {
+		t.Error("OpenURL should be false (was in DisabledActions)")
+	}
+	if cfg.Tools.Android.DeviceControl.Actions.Flashlight {
+		t.Error("Flashlight should be false (was in DisabledActions)")
+	}
+	if cfg.Tools.Android.Alarm.Actions.SetAlarm {
+		t.Error("SetAlarm should be false (was in DisabledActions)")
+	}
+	// Other actions should remain true
+	if !cfg.Tools.Android.Alarm.Actions.SetTimer {
+		t.Error("SetTimer should be true (was not in DisabledActions)")
+	}
+	if !cfg.Tools.Android.Web.Actions.WebSearch {
+		t.Error("WebSearch should be true (was not in DisabledActions)")
+	}
+	// DisabledActions should be cleared
+	if cfg.Tools.Android.DisabledActions != nil {
+		t.Error("DisabledActions should be nil after migration")
+	}
+}
+
 func TestLoadConfig_NoMigrationWhenCurrent(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "config.json")
 
 	// Write a config already at current version
-	data := `{"version":2,"llm":{"model":"test"}}`
+	data := `{"version":3,"llm":{"model":"test"}}`
 	if err := os.WriteFile(path, []byte(data), 0644); err != nil {
 		t.Fatal(err)
 	}

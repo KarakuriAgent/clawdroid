@@ -154,24 +154,59 @@ fun ConfigSectionDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     var lastGroup: String? = null
+                    var sectionEnabled = true  // top-level "Enabled" toggle
+                    var groupEnabled = true
                     detail.fields.forEach { field ->
+                        val indent = (field.depth * 16).dp
                         if (field.group != lastGroup) {
                             lastGroup = field.group
+                            groupEnabled = true
                             if (field.group.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider(color = GlassBorder)
+                                HorizontalDivider(
+                                    color = GlassBorder,
+                                    modifier = Modifier.padding(start = indent),
+                                )
                                 Text(
                                     text = field.group,
                                     style = MaterialTheme.typography.titleSmall,
-                                    color = NeonCyan,
-                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = if (sectionEnabled) NeonCyan else NeonCyan.copy(alpha = 0.4f),
+                                    modifier = Modifier.padding(start = indent, top = 8.dp),
                                 )
                             }
                         }
+                        // Track section-level toggle (first "enabled" at min depth)
+                        val isEnabledToggle = field.key.endsWith(".enabled") &&
+                            field.type == "bool"
+                        val isSectionToggle = isEnabledToggle && field.depth <= 1
+                        if (isSectionToggle) {
+                            sectionEnabled = field.value.toBooleanStrictOrNull() == true
+                        }
+                        // Track category toggle (deeper "enabled" fields)
+                        val isCategoryToggle = isEnabledToggle && field.depth > 1
+                        if (isCategoryToggle) {
+                            groupEnabled = field.value.toBooleanStrictOrNull() == true
+                        }
+                        val fieldEnabled = when {
+                            isSectionToggle -> true  // section toggle itself is always enabled
+                            !sectionEnabled -> false  // section off → all children disabled
+                            isCategoryToggle -> true  // category toggle enabled when section is on
+                            else -> groupEnabled  // actions follow their category
+                        }
                         ConfigField(
                             field = field,
-                            onValueChanged = { viewModel.onFieldValueChanged(field.key, it) },
+                            onValueChanged = { newValue ->
+                                viewModel.onFieldValueChanged(field.key, newValue)
+                                if (isSectionToggle) {
+                                    sectionEnabled = newValue.toBooleanStrictOrNull() == true
+                                }
+                                if (isCategoryToggle) {
+                                    groupEnabled = newValue.toBooleanStrictOrNull() == true
+                                }
+                            },
                             snackbarHostState = snackbarHostState,
+                            modifier = Modifier.padding(start = indent),
+                            enabled = fieldEnabled,
                         )
                     }
                 }
@@ -194,15 +229,19 @@ private fun ConfigField(
     field: FieldState,
     onValueChanged: (String) -> Unit,
     snackbarHostState: SnackbarHostState? = null,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
-    when (field.type) {
-        "bool" -> BoolField(field, onValueChanged)
-        "int" -> NumberField(field, onValueChanged, KeyboardType.Number)
-        "float" -> NumberField(field, onValueChanged, KeyboardType.Decimal)
-        "[]string" -> StringArrayField(field, onValueChanged)
-        "directory" -> DirectoryField(field, onValueChanged, snackbarHostState)
-        "map", "[]any" -> JsonField(field, onValueChanged)
-        else -> StringField(field, onValueChanged)
+    Box(modifier = modifier.fillMaxWidth()) {
+        when (field.type) {
+            "bool" -> BoolField(field, onValueChanged, enabled)
+            "int" -> NumberField(field, onValueChanged, KeyboardType.Number)
+            "float" -> NumberField(field, onValueChanged, KeyboardType.Decimal)
+            "[]string" -> StringArrayField(field, onValueChanged)
+            "directory" -> DirectoryField(field, onValueChanged, snackbarHostState)
+            "map", "[]any" -> JsonField(field, onValueChanged)
+            else -> StringField(field, onValueChanged)
+        }
     }
 }
 
@@ -233,7 +272,7 @@ private fun StringField(field: FieldState, onValueChanged: (String) -> Unit) {
 }
 
 @Composable
-private fun BoolField(field: FieldState, onValueChanged: (String) -> Unit) {
+private fun BoolField(field: FieldState, onValueChanged: (String) -> Unit, enabled: Boolean = true) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -244,11 +283,12 @@ private fun BoolField(field: FieldState, onValueChanged: (String) -> Unit) {
         Text(
             field.label,
             style = MaterialTheme.typography.bodyLarge,
-            color = TextPrimary,
+            color = if (enabled) TextPrimary else TextSecondary.copy(alpha = 0.5f),
         )
         Switch(
             checked = field.value.toBooleanStrictOrNull() == true,
             onCheckedChange = { onValueChanged(it.toString()) },
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = NeonCyan,
                 checkedTrackColor = NeonCyan.copy(alpha = 0.3f),

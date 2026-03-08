@@ -24,6 +24,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
+import io.clawdroid.assistant.actions.*
 import java.io.ByteArrayOutputStream
 
 class ToolRequestHandler(
@@ -34,9 +35,29 @@ class ToolRequestHandler(
     private val onAccessibilityNeeded: () -> Unit
 ) {
 
+    private val actionHandlers: List<ActionHandler> = listOf(
+        AlarmActionHandler(),
+        CalendarActionHandler(),
+        ContactsActionHandler(),
+        CommunicationActionHandler(),
+        MediaActionHandler(),
+        NavigationActionHandler(),
+        DeviceControlActionHandler(),
+        SettingsActionHandler(),
+        WebActionHandler(),
+        ClipboardActionHandler(),
+    )
+
+    private val handlerMap: Map<String, ActionHandler> = actionHandlers
+        .flatMap { handler -> handler.supportedActions.map { it to handler } }
+        .toMap()
+
+    private val permissionRequester = PermissionRequester(context)
+
     suspend fun handle(request: ToolRequest): ToolResponse {
         return try {
             when (request.action) {
+                // Core actions handled directly
                 "search_apps" -> handleSearchApps(request)
                 "app_info" -> handleAppInfo(request)
                 "launch_app" -> handleLaunchApp(request)
@@ -48,11 +69,17 @@ class ToolRequestHandler(
                 "keyevent" -> handleKeyEvent(request)
                 "broadcast" -> handleBroadcast(request)
                 "intent" -> handleIntent(request)
-                else -> ToolResponse(
-                    requestId = request.requestId,
-                    success = false,
-                    error = "Unknown action: ${request.action}"
-                )
+                // Delegate to category handlers
+                else -> {
+                    val handler = handlerMap[request.action]
+                        ?: return ToolResponse(
+                            requestId = request.requestId,
+                            success = false,
+                            error = "Unknown action: ${request.action}"
+                        )
+                    ensurePermissions(request, handler)?.let { return it }
+                    handler.handle(request, context)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling tool request: ${request.action}", e)
@@ -62,6 +89,42 @@ class ToolRequestHandler(
                 error = "Error: ${e.message}"
             )
         }
+    }
+
+    private suspend fun ensurePermissions(
+        request: ToolRequest,
+        handler: ActionHandler
+    ): ToolResponse? {
+        val requirements = handler.requiredPermissions(request.action)
+        if (requirements.isEmpty()) return null
+
+        for (req in requirements) {
+            when (req) {
+                is PermissionRequirement.Runtime -> {
+                    val granted = permissionRequester.request(req.permission)
+                    if (!granted) {
+                        return ToolResponse(
+                            requestId = request.requestId,
+                            success = false,
+                            error = "Permission denied: ${req.description}. Please grant the permission and try again."
+                        )
+                    }
+                }
+                is PermissionRequirement.Special -> {
+                    if (!req.check(context)) {
+                        val intent = req.settingsIntent
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                        return ToolResponse(
+                            requestId = request.requestId,
+                            success = false,
+                            error = "${req.description} is not granted. Settings screen has been opened. Please grant the permission and try again."
+                        )
+                    }
+                }
+            }
+        }
+        return null
     }
 
     private fun requireAccessibility(request: ToolRequest): ToolResponse? {

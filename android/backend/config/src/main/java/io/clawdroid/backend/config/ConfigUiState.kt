@@ -25,6 +25,7 @@ data class FieldState(
     val key: String,
     val label: String,
     val group: String = "",
+    val depth: Int = 0,
     val type: String,
     val secret: Boolean,
     val value: String,

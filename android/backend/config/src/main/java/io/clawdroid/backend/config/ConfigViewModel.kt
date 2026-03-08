@@ -64,6 +64,7 @@ class ConfigViewModel(private val apiClient: ConfigApiClient) : ViewModel() {
                 key = field.key,
                 label = field.label,
                 group = field.group,
+                depth = field.depth,
                 type = field.type,
                 secret = field.secret,
                 value = display,

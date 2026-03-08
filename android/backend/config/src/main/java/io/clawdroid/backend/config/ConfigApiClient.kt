@@ -32,6 +32,7 @@ data class SchemaField(
     val key: String,
     val label: String,
     val group: String = "",
+    val depth: Int = 0,
     val type: String,
     val secret: Boolean = false,
     val default: JsonElement = Json.parseToJsonElement("null"),
