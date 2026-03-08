@@ -175,15 +175,15 @@ fun ConfigSectionDetailScreen(
                                 )
                             }
                         }
-                        // Track section-level toggle (depth 0, no group)
-                        val isSectionToggle = field.key.endsWith(".enabled") &&
-                            field.type == "bool" && field.group.isEmpty()
+                        // Track section-level toggle (first "enabled" at min depth)
+                        val isEnabledToggle = field.key.endsWith(".enabled") &&
+                            field.type == "bool"
+                        val isSectionToggle = isEnabledToggle && field.depth <= 1
                         if (isSectionToggle) {
                             sectionEnabled = field.value.toBooleanStrictOrNull() == true
                         }
-                        // Track category toggle: first "enabled" field in a group
-                        val isCategoryToggle = field.key.endsWith(".enabled") &&
-                            field.type == "bool" && field.group.isNotEmpty()
+                        // Track category toggle (deeper "enabled" fields)
+                        val isCategoryToggle = isEnabledToggle && field.depth > 1
                         if (isCategoryToggle) {
                             groupEnabled = field.value.toBooleanStrictOrNull() == true
                         }
